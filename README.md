@@ -62,7 +62,6 @@ The app currently accepts information such as listing poster, property type, BHK
 - A health endpoint that reports whether the model artifact is present.
 - Unit tests for key API behavior.
 - Django test coverage for key API behavior; run checks and tests locally before merging.
-- Project-local frontend accessibility and refactoring guidance in `.claude/skills/`.
 
 ## Technology stack
 
