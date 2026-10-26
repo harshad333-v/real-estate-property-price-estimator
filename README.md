@@ -1,138 +1,63 @@
 # Real Estate Property Price Estimator
 
-A machine-learning web application that estimates residential property listing prices in India from property attributes and address-related features. The project includes data preprocessing, model comparison, a serialized best-model pipeline (kept outside Git because model artifacts can be large), and a Django web interface/API.
+A Django web app and scikit-learn pipeline for estimating residential property listing prices in India. It includes data preprocessing, model comparison (Linear Regression, Random Forest, XGBoost), a browser form, and a JSON prediction endpoint.
 
-> **Status:** Working local MVP. Predictions are estimates from a dataset of property listings, not professional valuations or verified sale prices.
+> Educational project only. These are model estimates from listing data, not certified valuations or verified sale prices.
 
-## Features
-
-- Web form for property attributes and location text.
-- Django endpoint that accepts JSON and returns the estimated price in Indian rupees and lakhs.
-- Data preprocessing and feature engineering for area, address-derived locality/city candidates, and geographic coordinates.
-- Comparison of three regression models: Linear Regression, Random Forest Regressor, and XGBoost Regressor.
-- Validation metrics: MAE, MSE, RMSE, and R².
-- A Jupyter notebook for exploration and documentation of the workflow.
-
-## Technology stack
-
-- **Backend:** Python, Django
-- **ML/data:** Pandas, NumPy, scikit-learn, XGBoost, Joblib
-- **Frontend in the current `main` branch:** Django template, HTML, Tailwind CSS CDN, vanilla JavaScript
-- **Exploration:** Jupyter Notebook, Matplotlib, Seaborn
-
-The repository may have multiple historical branches. This README describes the code currently present on `main`; check the branch contents before assuming the separate React/Vite frontend is included.
+## Stack
+- Python, Django, Pandas, NumPy, scikit-learn, XGBoost, Joblib
+- Django template, HTML, Tailwind CSS CDN, vanilla JavaScript
+- Jupyter, Matplotlib, Seaborn
 
 ## Project structure
-
 ```text
-.
-├── audit_dataset.py
-├── backend/
-│   ├── manage.py
-│   └── config/
-│       ├── settings.py
-│       └── urls.py
-├── models/
-│   └── .gitkeep             # trained model artifacts are not committed
-├── notebooks/
-│   └── real_estate_price_estimator.ipynb
-├── predictions/
-│   ├── templates/predictions/index.html
-│   ├── urls.py
-│   └── views.py
-├── src/
-│   ├── data_split.py
-│   ├── model_pipeline.py
-│   ├── preprocessing.py
-│   └── train_models.py
-├── requirements.txt
-└── README.md
+backend/                 Django settings and manage.py
+predictions/             HTML template, JSON API, tests
+src/                     preprocessing, split, model pipeline, training
+notebooks/               EDA and project workflow
+models/                  generated model artifacts (ignored by Git)
+data/README.md            dataset acquisition and placement instructions
+audit_dataset.py          dataset audit script
+requirements.txt          runtime and analysis dependencies
+.env.example              local environment variable template
 ```
 
-## Dataset
+## Local setup (Windows PowerShell)
 
-The project notebook records these dataset dimensions:
-
-- Training data: **29,451 rows × 12 columns**
-- Test data: **68,720 rows × 11 columns**
-- Target: `TARGET(PRICE_IN_LACS)`
-- Target unit: **lakhs of Indian rupees**
-
-The input features include poster type, construction status, RERA status, bedroom count/type, area, ready-to-move status, resale status, address, and latitude/longitude columns. The test dataset has no target column and should not be used to evaluate supervised model accuracy.
-
-**Data setup:** Raw data is intentionally excluded from Git. Obtain the authorized dataset from its original source, check its terms/licence, and place the files where the scripts expect them:
-
-```text
-data/raw/train.csv
-data/raw/test.csv
-```
-
-The training script currently defaults to `data/raw/train.csv`. Do not commit large raw datasets or private/proprietary data.
-
-## Local setup
-
-### 1. Clone the repository
-
+1. Clone and create the virtual environment:
 ```powershell
 git clone https://github.com/harshad333-v/real-estate-property-price-estimator.git
 cd real-estate-property-price-estimator
-```
-
-### 2. Create and activate a virtual environment
-
-```powershell
 py -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
+pip install -r requirements.txt
+Copy-Item .env.example .env
 ```
 
-### 3. Install dependencies
+2. Edit `.env`. For local use, `DJANGO_DEBUG=true` and `DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost` are suitable. Set a unique `DJANGO_SECRET_KEY` even in local development. Never commit `.env`.
 
-The repository's `requirements.txt` is currently empty on `main`, so installation from that file is not yet sufficient. Install the packages used by the code:
+3. Obtain the dataset from an authorized source and confirm its licence. Put the training file at `data/raw/train.csv`. Raw data is intentionally not tracked. The target is `TARGET(PRICE_IN_LACS)`; the project notebook records 29,451 training rows and 68,720 test rows.
 
-```powershell
-python -m pip install django pandas numpy scikit-learn xgboost joblib matplotlib seaborn jupyter
-```
-
-For a reproducible setup, generate and review a tested dependency lock after the project runs in a clean environment:
-
-```powershell
-python -m pip freeze > requirements.txt
-```
-
-### 4. Add the dataset and train the model
-
-Place the training CSV at `data/raw/train.csv`, then from the repository root run:
-
+4. Train the pipeline from the repository root:
 ```powershell
 python audit_dataset.py
 python -m src.train_models
 ```
+This should create `models/best_model.joblib` and reports under `reports/`. The model artifact is ignored by Git because it can be larger than GitHub's normal file-size limit. A fresh clone must train a model or obtain a trusted compatible artifact before predictions can run.
 
-The training pipeline is expected to save its selected pipeline to `models/best_model.joblib` and reports under `reports/`. Training time depends on hardware and data. The model file is ignored by Git, so every fresh environment must train it or obtain it from a trusted, documented artifact source.
-
-> Note: The Django view loads `models/best_model.joblib` at import time. The web app will fail to start until that artifact exists.
-
-### 5. Start Django
-
-The current entry point is `backend/manage.py`. Run it from the repository root so the model and `src` paths resolve as expected:
-
+5. Check and start Django:
 ```powershell
 python backend\manage.py check
+python backend\manage.py test
 python backend\manage.py runserver
 ```
+Open http://127.0.0.1:8000/.
 
-Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/).
+## Prediction API
+`POST /api/predict/` with `Content-Type: application/json`. The endpoint uses Django CSRF protection; browser requests should first load the home page to receive the CSRF cookie.
 
-The root route renders the estimator form. The prediction endpoint is:
-
-```text
-POST http://127.0.0.1:8000/api/predict/
-Content-Type: application/json
-```
-
-Example request body (all fields are required by the current view):
-
+Example body:
 ```json
 {
   "POSTED_BY": "Owner",
@@ -148,21 +73,10 @@ Example request body (all fields are required by the current view):
   "LATITUDE": 77.5946
 }
 ```
+A successful response includes `predicted_price_lakhs`, `predicted_price_rupees`, and `currency`. Values are examples of the request schema, not an expected market price.
 
-Successful responses contain `predicted_price_lakhs`, `predicted_price_rupees`, and `currency`. The numeric example above demonstrates the API shape only; it is not a benchmark or a guaranteed price.
-
-## Modeling workflow
-
-1. Audit the data and inspect quality issues.
-2. Build features while retaining raw source columns.
-3. Create a reproducible train/validation split (the current code uses an 80/20 split with random state 42).
-4. Fit preprocessing and regression models in a scikit-learn pipeline.
-5. Compare candidates using MAE, MSE, RMSE, and R².
-6. Save the lowest-validation-MAE model pipeline and a model comparison report.
-
-### Recorded validation results
-
-The local training run recorded the following values. They should be regenerated from the exact committed data/code before being treated as current reproducible results.
+## Recorded validation metrics
+These are historical results from a local run and should be reproduced before being treated as current:
 
 | Model | MAE (lakhs) | RMSE (lakhs) | R² |
 |---|---:|---:|---:|
@@ -170,57 +84,22 @@ The local training run recorded the following values. They should be regenerated
 | Random Forest | 37.82 | 394.24 | 0.7148 |
 | XGBoost | 42.74 | 446.33 | 0.6344 |
 
-Random Forest was the lowest-MAE model in that run. The very large RMSE values compared with the median absolute error indicate that a small number of extreme errors materially affect the results. Report metrics transparently and inspect errors by price range and geography; do not claim reliable accuracy for all properties.
+Random Forest had the lowest MAE in that run. The high RMSE relative to MAE indicates extreme prediction errors that need analysis by price range, location, and property type.
 
-## Important limitations and known gaps
+## Security and limitations
+- Settings read `DJANGO_SECRET_KEY`, `DJANGO_DEBUG`, and `DJANGO_ALLOWED_HOSTS` from environment variables; `.env` is loaded locally and ignored by Git. Production must use a unique secret, `DJANGO_DEBUG=false`, correct hostnames, HTTPS, and Django's deployment checklist.
+- The model loads on the first prediction. If the artifact is missing, the API returns a clear service-unavailable response rather than preventing Django from starting.
+- Server-side validation rejects missing fields, invalid categories, non-finite numbers, and out-of-range values.
+- `src/preprocessing.py` currently swaps the raw coordinate column interpretation to normalize the dataset. Verify the source dataset's schema and known coordinates before relying on geo features; don't change it without checking the actual data.
+- Listing prices may differ from sale prices; dataset provenance and usage rights must be verified before public redistribution.
+- The dataset and trained model are not stored in this repository.
 
-- The input dataset represents property listings; the target is not necessarily a verified transaction/sale price.
-- Dataset provenance/licence is not documented here. Verify the source and usage terms before public deployment.
-- Coordinate fields are interpreted with a swapped mapping in `src/preprocessing.py` (`LONGITUDE` feeds `GEO_LATITUDE`, and `LATITUDE` feeds `GEO_LONGITUDE`). Confirm the original dataset schema and correct the mapping before relying on location features.
-- Address parsing takes text before/after the last comma as locality/city candidates; real-world address formats can differ.
-- Current request validation checks required fields and rejects invalid model outputs, but production-grade bounds/type validation, rate limiting, and structured logging still need work.
-- Django settings currently use development configuration (`DEBUG=True`, empty `ALLOWED_HOSTS`, and an in-file development secret). Do not deploy this configuration publicly as-is. Load secrets from environment variables, configure hosts and HTTPS, and follow Django's deployment checklist.
-- Raw data and the trained model are not included. A newly cloned repository needs the dataset and a trained model artifact before the prediction endpoint can run.
-- Price estimates are informational and may be inaccurate for unseen localities, unusual properties, or market conditions that differ from the training listings.
-
-## Roadmap: make it more advanced
-
-### Priority 1 — Reliability and reproducibility
-- Fill `requirements.txt` with tested, pinned dependencies and add clean-environment setup instructions.
-- Add a small non-sensitive sample dataset or data schema document (not the full dataset).
-- Add automated tests for preprocessing, missing fields, malformed JSON, invalid numeric values, and prediction response schema.
-- Add a model-artifact existence check with a clear startup error instead of importing a missing model silently.
-- Correct and document coordinate semantics; add tests using known coordinates.
-
-### Priority 2 — Better ML evaluation
-- Add a simple median/region baseline and compare it against the ML models.
-- Use a held-out test set only for final prediction/submission, never for tuning.
-- Add cross-validation or time/geographic split where appropriate to measure generalization.
-- Report MAE and median absolute error alongside RMSE; inspect residuals by city, price band, BHK, and area.
-- Investigate target-price skew and high-price outliers; compare target transformation or robust loss without hiding tail errors.
-- Add feature ablation and error analysis before adding more complex algorithms.
-
-### Priority 3 — Product and API quality
-- Validate numeric ranges and enum values on the server, and return consistent error codes.
-- Move model loading into a small service layer and add an explicit model version/metadata response.
-- Add OpenAPI/Swagger documentation, API integration tests, and structured logs.
-- Improve address/location inputs with geocoding and a map picker; only store/use location data in accordance with provider terms.
-- Add prediction history and saved comparisons only if persistence is actually needed.
-
-### Priority 4 — Deployment and maintainability
-- Move settings and secrets to environment variables; set production `DEBUG=False`, `ALLOWED_HOSTS`, secure cookies, and HTTPS.
-- Add Docker for repeatable runtime environments and CI checks for tests/linting.
-- Store large model artifacts in release assets or object storage with versioning and checksums, not normal Git commits.
-- Add monitoring for API errors, latency, model drift, and prediction distributions.
-- Consider model retraining only when new licensed data and measurable evaluation improvements are available.
-
-## Contributing
-
-1. Create a feature branch.
-2. Make one focused change.
-3. Run the tests and `python backend\manage.py check`.
-4. Submit a pull request with context and verification steps.
+## Roadmap
+1. Reproduce clean install, training, and tests.
+2. Verify coordinate mapping against source records.
+3. Add evaluation by geography and price band, cross-validation, and a simple baseline.
+4. Add API schema docs, structured logging, rate limiting, and deployment configuration.
+5. Deploy with a versioned model artifact, CI, monitoring, and drift checks.
 
 ## Disclaimer
-
-This project is for educational and informational use. It does not provide certified valuation, legal, tax, lending, or investment advice. Validate estimates independently before making financial decisions.
+For educational and informational use only; not legal, tax, lending, investment, or certified valuation advice.
