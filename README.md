@@ -61,7 +61,7 @@ The app currently accepts information such as listing poster, property type, BHK
 - Lazy loading of the trained model so Django can start even when the model artifact is missing.
 - A health endpoint that reports whether the model artifact is present.
 - Unit tests for key API behavior.
-- GitHub Actions workflow for Django checks and tests.
+- Django test coverage for key API behavior; run checks and tests locally before merging.
 - Project-local frontend accessibility and refactoring guidance in `.claude/skills/`.
 
 ## Technology stack
@@ -386,7 +386,7 @@ python backend\manage.py check
 python backend\manage.py test
 ```
 
-The GitHub Actions workflow in `.github/workflows/python-checks.yml` installs project requirements and runs these checks for relevant changes. A successful CI run confirms those automated checks passed in that environment; it does not validate the data license, the coordinate interpretation, or the statistical quality of a newly trained model.
+Run these checks locally before merging. Automated CI is not included on the `main` branch at present; if you add a workflow later, ensure its configuration is committed separately. Passing application checks alone does not validate the data license, coordinate interpretation, or statistical quality of a newly trained model.
 
 Before merging or deploying, also:
 - Train with the authorized dataset and inspect generated reports.
