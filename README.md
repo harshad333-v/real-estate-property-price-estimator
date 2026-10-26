@@ -44,7 +44,7 @@ Copy-Item .env.example .env
 python audit_dataset.py
 python -m src.train_models
 ```
-This should create `models/best_model.joblib` and reports under `reports/`. The model artifact is ignored by Git because it can be larger than GitHub's normal file-size limit. A fresh clone must train a model or obtain a trusted compatible artifact before predictions can run.
+This should create `models/best_model.joblib` and reports under `reports/`: `model_comparison.csv`, `model_metrics.json`, `price_segment_metrics.csv`, `model_card.json`, and `random_forest_validation_errors.csv`. The model artifact is ignored by Git because it can be larger than GitHub's normal file-size limit. A fresh clone must train a model or obtain a trusted compatible artifact before predictions can run.
 
 5. Check and start Django:
 ```powershell
@@ -73,7 +73,7 @@ Example body:
   "LATITUDE": 77.5946
 }
 ```
-A successful response includes `predicted_price_lakhs`, `predicted_price_rupees`, and `currency`. Values are examples of the request schema, not an expected market price.
+A successful response includes `predicted_price_lakhs`, `predicted_price_rupees`, and `currency`. Values are examples of the request schema, not an expected market price. `GET /api/health/` returns service readiness and whether the model artifact exists; it responds with HTTP 503 until a model artifact is available.
 
 ## Recorded validation metrics
 These are historical results from a local run and should be reproduced before being treated as current:
@@ -94,12 +94,15 @@ Random Forest had the lowest MAE in that run. The high RMSE relative to MAE indi
 - Listing prices may differ from sale prices; dataset provenance and usage rights must be verified before public redistribution.
 - The dataset and trained model are not stored in this repository.
 
+## Benchmark and implementation notes
+See [docs/benchmark-and-implementation.md](docs/benchmark-and-implementation.md) for the reviewed GitHub references, adopted engineering patterns, interpretation rules, and remaining roadmap. Training now generates price-band diagnostics and a model card alongside the model comparison report.
+
 ## Roadmap
 1. Reproduce clean install, training, and tests.
 2. Verify coordinate mapping against source records.
-3. Add evaluation by geography and price band, cross-validation, and a simple baseline.
-4. Add API schema docs, structured logging, rate limiting, and deployment configuration.
-5. Deploy with a versioned model artifact, CI, monitoring, and drift checks.
+3. Add cross-validation, a final untouched test set, and geographic holdout evaluation.
+4. Add model explanations after validating features and data quality.
+5. Add deployment, structured monitoring, and drift checks.
 
 ## Disclaimer
 For educational and informational use only; not legal, tax, lending, investment, or certified valuation advice.
