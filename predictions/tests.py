@@ -57,6 +57,19 @@ class PredictionEndpointTests(SimpleTestCase):
     def setUp(self):
         self.client = Client(enforce_csrf_checks=False)
 
+    def test_health_reports_missing_model_as_degraded(self):
+        with patch("predictions.views.MODEL_PATH.is_file", return_value=False):
+            response = self.client.get("/api/health/")
+        self.assertEqual(response.status_code, 503)
+        self.assertEqual(response.json()["status"], "degraded")
+        self.assertFalse(response.json()["model_available"])
+
+    def test_health_reports_available_model(self):
+        with patch("predictions.views.MODEL_PATH.is_file", return_value=True):
+            response = self.client.get("/api/health/")
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json()["model_available"])
+
     def test_home_renders(self):
         response = self.client.get("/")
         self.assertEqual(response.status_code, 200)
