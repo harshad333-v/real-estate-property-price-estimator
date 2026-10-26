@@ -9,7 +9,7 @@ import pandas as pd
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import ensure_csrf_cookie
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 if str(PROJECT_ROOT) not in sys.path:
@@ -79,6 +79,17 @@ def validate_payload(payload):
         validated[field] = int(value) if field == "BHK_NO." else value
 
     return validated
+
+
+@require_GET
+def health(request):
+    """Return lightweight service and model-artifact readiness information."""
+    model_exists = MODEL_PATH.is_file()
+    return JsonResponse({
+        "status": "ok" if model_exists else "degraded",
+        "service": "real-estate-price-estimator",
+        "model_available": model_exists,
+    }, status=200 if model_exists else 503)
 
 
 @ensure_csrf_cookie
