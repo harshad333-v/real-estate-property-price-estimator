@@ -1,0 +1,195 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Estate Price Estimator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-slate-950 text-slate-100">
+    <main class="mx-auto max-w-4xl px-5 py-12">
+        <header class="mb-10">
+            <p class="mb-3 text-sm font-semibold uppercase tracking-[0.25em] text-cyan-400">
+                Property Intelligence
+            </p>
+            <h1 class="text-4xl font-bold tracking-tight sm:text-5xl">
+                Real Estate Price Estimator
+            </h1>
+            <p class="mt-4 max-w-2xl text-slate-400">
+                Estimate a property's market listing price using our trained
+                machine learning model.
+            </p>
+        </header>
+
+        <form id="prediction-form"
+              class="grid gap-5 rounded-2xl border border-slate-800 bg-slate-900 p-6 sm:grid-cols-2">
+
+            <label class="text-sm text-slate-300">
+                Posted by
+                <select name="POSTED_BY" required
+                        class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
+                    <option value="Owner">Owner</option>
+                    <option value="Dealer">Dealer</option>
+                    <option value="Builder">Builder</option>
+                </select>
+            </label>
+
+            <label class="text-sm text-slate-300">
+                Property type
+                <select name="BHK_OR_RK" required
+                        class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
+                    <option value="BHK">BHK</option>
+                    <option value="RK">RK</option>
+                </select>
+            </label>
+
+            <label class="text-sm text-slate-300">
+                BHK / RK count
+                <input name="BHK_NO." type="number" min="1" max="20" value="2" required
+                       class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
+            </label>
+
+            <label class="text-sm text-slate-300">
+                Area (square feet)
+                <input name="SQUARE_FT" type="number" min="1" step="any" value="1000" required
+                       class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
+            </label>
+
+            <label class="text-sm text-slate-300">
+                Address / locality
+                <input name="ADDRESS" type="text" value="Lanka, Varanasi" required
+                       class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
+            </label>
+
+            <label class="text-sm text-slate-300">
+                Longitude field (dataset)
+                <input name="LONGITUDE" type="number" step="any" value="25.2677" required
+                       class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
+            </label>
+
+            <label class="text-sm text-slate-300">
+                Latitude field (dataset)
+                <input name="LATITUDE" type="number" step="any" value="82.9913" required
+                       class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
+            </label>
+
+            <label class="text-sm text-slate-300">
+                Under construction?
+                <select name="UNDER_CONSTRUCTION"
+                        class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
+                    <option value="0">No</option>
+                    <option value="1">Yes</option>
+                </select>
+            </label>
+
+            <label class="text-sm text-slate-300">
+                RERA registered?
+                <select name="RERA"
+                        class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
+                    <option value="0">No</option>
+                    <option value="1">Yes</option>
+                </select>
+            </label>
+
+            <label class="text-sm text-slate-300">
+                Ready to move?
+                <select name="READY_TO_MOVE"
+                        class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
+                    <option value="1">Yes</option>
+                    <option value="0">No</option>
+                </select>
+            </label>
+
+            <label class="text-sm text-slate-300">
+                Resale property?
+                <select name="RESALE"
+                        class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
+                    <option value="1">Yes</option>
+                    <option value="0">No</option>
+                </select>
+            </label>
+
+            <div class="sm:col-span-2">
+                <button type="submit"
+                        class="w-full rounded-lg bg-cyan-400 px-5 py-3 font-bold text-slate-950 hover:bg-cyan-300">
+                    Estimate Property Price
+                </button>
+            </div>
+
+            <p id="status" role="status" class="sm:col-span-2 text-sm text-slate-400"></p>
+
+            <section id="result" hidden
+                     class="sm:col-span-2 rounded-xl border border-cyan-900 bg-slate-950 p-6">
+                <p class="text-sm text-slate-400">Estimated property price</p>
+                <p id="price-lakhs" class="mt-2 text-4xl font-bold text-cyan-400"></p>
+                <p id="price-rupees" class="mt-2 text-slate-300"></p>
+                <p class="mt-4 text-xs text-slate-500">
+                    Model estimate only; actual market prices may differ.
+                </p>
+            </section>
+        </form>
+    </main>
+
+    <script>
+        const form = document.getElementById("prediction-form");
+        const status = document.getElementById("status");
+        const result = document.getElementById("result");
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            result.hidden = true;
+            status.textContent = "Calculating estimate...";
+
+            const payload = Object.fromEntries(new FormData(form).entries());
+
+            for (const key of [
+                "UNDER_CONSTRUCTION", "RERA", "BHK_NO.",
+                "SQUARE_FT", "READY_TO_MOVE", "RESALE",
+                "LONGITUDE", "LATITUDE"
+            ]) {
+                payload[key] = Number(payload[key]);
+            }
+
+            try {
+                const response = await fetch("/api/predict/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": getCookie("csrftoken")
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || "Prediction request failed.");
+                }
+
+                document.getElementById("price-lakhs").textContent =
+                    "₹" + Number(data.predicted_price_lakhs).toLocaleString("en-IN") + " lakhs";
+
+                document.getElementById("price-rupees").textContent =
+                    "₹" + Number(data.predicted_price_rupees).toLocaleString("en-IN");
+
+                result.hidden = false;
+                status.textContent = "Prediction completed.";
+            } catch (error) {
+                status.textContent = "Error: " + error.message;
+            }
+        });
+
+        function getCookie(name) {
+            const prefix = name + "=";
+            for (const item of document.cookie.split(";")) {
+                const cookie = item.trim();
+                if (cookie.startsWith(prefix)) {
+                    return decodeURIComponent(cookie.substring(prefix.length));
+                }
+            }
+            return "";
+        }
+    </script>
+</body>
+</html>
