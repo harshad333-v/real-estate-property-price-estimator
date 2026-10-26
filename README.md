@@ -155,11 +155,6 @@ The saved artifact should contain the fitted preprocessing and estimator steps t
 
 ```text
 real-estate-property-price-estimator/
-├── .claude/
-│   └── skills/                   # Project-local frontend skill guidance
-├── .github/
-│   └── workflows/
-│       └── python-checks.yml     # Automated Django checks and tests
 ├── backend/
 │   ├── manage.py                 # Django management entry point
 │   └── config/
