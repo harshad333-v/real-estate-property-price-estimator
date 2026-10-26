@@ -1,152 +1,282 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real Estate Price Estimator</title>
+    <meta name="theme-color" content="#f5f4ef">
+    <meta name="description" content="Estimate residential property listing prices with a machine-learning property intelligence tool.">
+    <title>EstateIQ — Real Estate Price Estimator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        :root {
+            color-scheme: light;
+            --ink: #18231f;
+            --muted: #68736c;
+            --paper: #f5f4ef;
+            --line: #e4e5dc;
+            --green: #245d48;
+            --green-dark: #194634;
+            --lime: #d9f17c;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: var(--paper);
+            color: var(--ink);
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        }
+        .site-shell { max-width: 1200px; margin-inline: auto; padding-inline: 28px; }
+        .topbar { border-bottom: 1px solid rgba(24,35,31,.10); }
+        .brand-mark {
+            display: grid; place-items: center; width: 38px; height: 38px;
+            border-radius: 13px; color: white; background: var(--green);
+        }
+        .eyebrow { color: var(--green); letter-spacing: .18em; }
+        .hero-grid { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(270px, .85fr); gap: 42px; align-items: end; }
+        .hero-title { font-size: clamp(2.7rem, 6.5vw, 5.4rem); line-height: .99; letter-spacing: -.065em; }
+        .hero-title em { color: var(--green); font-style: normal; }
+        .hero-visual {
+            position: relative; min-height: 245px; overflow: hidden; border-radius: 22px;
+            background: #dce5d9; isolation: isolate;
+        }
+        .hero-visual:before {
+            content: ""; position: absolute; inset: 0;
+            background: linear-gradient(145deg, rgba(255,255,255,.42), transparent 60%);
+            z-index: -1;
+        }
+        .building { position: absolute; bottom: -20px; border: 1px solid rgba(36,93,72,.22); background: rgba(36,93,72,.12); }
+        .building.one { left: 12%; width: 30%; height: 58%; border-radius: 9px 9px 0 0; transform: skewY(-4deg); }
+        .building.two { left: 38%; width: 33%; height: 82%; border-radius: 10px 10px 0 0; background: rgba(36,93,72,.25); }
+        .building.three { left: 66%; width: 25%; height: 66%; border-radius: 9px 9px 0 0; transform: skewY(4deg); }
+        .window-grid { position: absolute; inset: 18px 14px 15px; opacity: .58; background-image: linear-gradient(to right, transparent 0 18px, rgba(36,93,72,.26) 18px 21px), linear-gradient(to bottom, transparent 0 19px, rgba(36,93,72,.26) 19px 22px); background-size: 31px 31px; }
+        .sun { position: absolute; width: 62px; height: 62px; top: 24px; right: 29px; border-radius: 50%; background: #f2d987; }
+        .float-note { position: absolute; right: 16px; bottom: 16px; background: rgba(255,255,255,.88); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.7); border-radius: 14px; padding: 12px 15px; }
+        .form-card { border: 1px solid var(--line); border-radius: 24px; background: #fff; box-shadow: 0 18px 70px rgba(24,35,31,.055); }
+        .section-number { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; background: #edf3e6; color: var(--green); font-size: 12px; font-weight: 800; }
+        .field-label { display: block; margin-bottom: 8px; font-size: 13px; font-weight: 650; color: #46524b; }
+        .field-control {
+            width: 100%; min-height: 48px; border: 1px solid #dfe4dc; border-radius: 12px;
+            background: #fbfcf9; padding: 11px 13px; color: var(--ink); font-size: 14px;
+            outline: none; transition: border-color .18s, box-shadow .18s, background .18s;
+        }
+        .field-control:hover { border-color: #b9c9bc; }
+        .field-control:focus { border-color: var(--green); background: #fff; box-shadow: 0 0 0 4px rgba(36,93,72,.12); }
+        .field-hint { margin-top: 6px; color: #849087; font-size: 11px; line-height: 1.45; }
+        .primary-btn {
+            display: inline-flex; justify-content: center; align-items: center; gap: 10px; width: 100%;
+            min-height: 54px; border: 0; border-radius: 13px; background: var(--green); color: white;
+            font-size: 14px; font-weight: 750; cursor: pointer; transition: background .2s, transform .2s, box-shadow .2s;
+        }
+        .primary-btn:hover { background: var(--green-dark); box-shadow: 0 9px 24px rgba(36,93,72,.2); transform: translateY(-1px); }
+        .primary-btn:focus-visible { outline: 3px solid #a4bf6c; outline-offset: 3px; }
+        .primary-btn:disabled { opacity: .68; cursor: wait; transform: none; box-shadow: none; }
+        .pill { display: inline-flex; align-items: center; gap: 7px; border: 1px solid #dce6d8; border-radius: 999px; padding: 7px 10px; color: #42624f; background: #f8faf5; font-size: 11px; font-weight: 650; }
+        .result-card { border: 1px solid #cdddc9; border-radius: 18px; background: linear-gradient(135deg, #f0f6e9, #fbfcf6); }
+        .result-value { font-size: clamp(2rem, 5vw, 3.15rem); line-height: 1.08; letter-spacing: -.055em; overflow-wrap: anywhere; }
+        .status-error { color: #a2352c !important; }
+        .status-success { color: var(--green) !important; }
+        .mini-stat { border: 1px solid var(--line); background: rgba(255,255,255,.6); border-radius: 13px; padding: 12px 14px; }
+        [hidden] { display: none !important; }
+        @media (max-width: 760px) {
+            .site-shell { padding-inline: 17px; }
+            .hero-grid { grid-template-columns: 1fr; gap: 24px; }
+            .hero-visual { min-height: 190px; }
+            .hero-title { font-size: clamp(2.65rem, 13vw, 4.2rem); }
+            .form-card { border-radius: 18px; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; }
+        }
+    </style>
 </head>
-<body class="min-h-screen bg-slate-950 text-slate-100">
-    <main class="mx-auto max-w-4xl px-5 py-12">
-        <header class="mb-10">
-            <p class="mb-3 text-sm font-semibold uppercase tracking-[0.25em] text-cyan-400">
-                Property Intelligence
-            </p>
-            <h1 class="text-4xl font-bold tracking-tight sm:text-5xl">
-                Real Estate Price Estimator
-            </h1>
-            <p class="mt-4 max-w-2xl text-slate-400">
-                Estimate a property's market listing price using our trained
-                machine learning model.
-            </p>
-        </header>
+<body>
+    <div class="topbar">
+        <nav class="site-shell flex h-[76px] items-center justify-between" aria-label="Main navigation">
+            <a href="/" class="flex items-center gap-3 no-underline" style="color:inherit;text-decoration:none">
+                <span class="brand-mark" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M3 11.2 12 4l9 7.2v8.3a.5.5 0 0 1-.5.5H3.5a.5.5 0 0 1-.5-.5v-8.3Z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 20v-6h6v6M7.5 10h.01M16.5 10h.01" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                </span>
+                <span>
+                    <span class="block text-sm font-extrabold tracking-tight">Estate<span style="color:var(--green)">IQ</span></span>
+                    <span class="block text-[10px] font-semibold uppercase tracking-[.16em]" style="color:#7a857d">Property intelligence</span>
+                </span>
+            </a>
+            <a href="#estimator" class="hidden rounded-full border px-4 py-2 text-xs font-semibold sm:inline-flex" style="border-color:#d9ded5;color:#46524b;text-decoration:none">Open estimator <span aria-hidden="true">↘</span></a>
+            <span class="pill sm:hidden"><span style="width:6px;height:6px;border-radius:50%;background:#6b9c64"></span> ML estimator</span>
+        </nav>
+    </div>
 
-        <form id="prediction-form"
-              class="grid gap-5 rounded-2xl border border-slate-800 bg-slate-900 p-6 sm:grid-cols-2">
+    <main class="site-shell py-10 sm:py-14">
+        <section class="hero-grid mb-10 sm:mb-14" aria-labelledby="page-title">
+            <div>
+                <p class="eyebrow mb-5 text-[11px] font-extrabold uppercase">A clearer view of property value</p>
+                <h1 id="page-title" class="hero-title font-semibold">Find your<br>property's <em>worth.</em></h1>
+                <p class="mt-5 max-w-xl text-base leading-7 sm:text-lg" style="color:var(--muted)">
+                    A machine-learning estimate for residential listings in India. Share a few property details to get an indicative price in seconds.
+                </p>
+                <div class="mt-6 flex flex-wrap gap-2">
+                    <span class="pill"><span aria-hidden="true">✦</span> ML-powered estimate</span>
+                    <span class="pill"><span aria-hidden="true">₹</span> Prices in Indian rupees</span>
+                </div>
+            </div>
+            <div class="hero-visual" aria-hidden="true">
+                <span class="sun"></span>
+                <div class="building one"><div class="window-grid"></div></div>
+                <div class="building two"><div class="window-grid"></div></div>
+                <div class="building three"><div class="window-grid"></div></div>
+                <div class="float-note">
+                    <p class="text-[10px] font-bold uppercase tracking-[.15em]" style="color:#718076">Property insight</p>
+                    <p class="mt-1 text-sm font-bold" style="color:var(--ink)">Make your next move informed.</p>
+                </div>
+            </div>
+        </section>
 
-            <label class="text-sm text-slate-300">
-                Posted by
-                <select name="POSTED_BY" required
-                        class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
-                    <option value="Owner">Owner</option>
-                    <option value="Dealer">Dealer</option>
-                    <option value="Builder">Builder</option>
-                </select>
-            </label>
-
-            <label class="text-sm text-slate-300">
-                Property type
-                <select name="BHK_OR_RK" required
-                        class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
-                    <option value="BHK">BHK</option>
-                    <option value="RK">RK</option>
-                </select>
-            </label>
-
-            <label class="text-sm text-slate-300">
-                BHK / RK count
-                <input name="BHK_NO." type="number" min="1" max="20" value="2" required
-                       class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
-            </label>
-
-            <label class="text-sm text-slate-300">
-                Area (square feet)
-                <input name="SQUARE_FT" type="number" min="1" step="any" value="1000" required
-                       class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
-            </label>
-
-            <label class="text-sm text-slate-300">
-                Address / locality
-                <input name="ADDRESS" type="text" value="Lanka, Varanasi" required
-                       class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
-            </label>
-
-            <label class="text-sm text-slate-300">
-                Longitude field (dataset)
-                <input name="LONGITUDE" type="number" step="any" value="25.2677" required
-                       class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
-            </label>
-
-            <label class="text-sm text-slate-300">
-                Latitude field (dataset)
-                <input name="LATITUDE" type="number" step="any" value="82.9913" required
-                       class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
-            </label>
-
-            <label class="text-sm text-slate-300">
-                Under construction?
-                <select name="UNDER_CONSTRUCTION"
-                        class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
-                    <option value="0">No</option>
-                    <option value="1">Yes</option>
-                </select>
-            </label>
-
-            <label class="text-sm text-slate-300">
-                RERA registered?
-                <select name="RERA"
-                        class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
-                    <option value="0">No</option>
-                    <option value="1">Yes</option>
-                </select>
-            </label>
-
-            <label class="text-sm text-slate-300">
-                Ready to move?
-                <select name="READY_TO_MOVE"
-                        class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
-                    <option value="1">Yes</option>
-                    <option value="0">No</option>
-                </select>
-            </label>
-
-            <label class="text-sm text-slate-300">
-                Resale property?
-                <select name="RESALE"
-                        class="mt-2 w-full rounded-lg border border-slate-700 bg-slate-950 p-3">
-                    <option value="1">Yes</option>
-                    <option value="0">No</option>
-                </select>
-            </label>
-
-            <div class="sm:col-span-2">
-                <button type="submit"
-                        class="w-full rounded-lg bg-cyan-400 px-5 py-3 font-bold text-slate-950 hover:bg-cyan-300">
-                    Estimate Property Price
-                </button>
+        <section id="estimator" class="form-card overflow-hidden" aria-labelledby="form-title">
+            <div class="flex flex-col gap-4 border-b px-5 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8" style="border-color:var(--line)">
+                <div>
+                    <p class="eyebrow text-[10px] font-extrabold uppercase">Property details</p>
+                    <h2 id="form-title" class="mt-1 text-xl font-bold tracking-tight sm:text-2xl">Build your estimate</h2>
+                    <p class="mt-1 text-sm" style="color:var(--muted)">Fill in the details below. Fields marked with * are required.</p>
+                </div>
+                <div class="flex items-center gap-2 text-xs" style="color:#728077">
+                    <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#76a46c"></span>
+                    Your inputs stay in this session
+                </div>
             </div>
 
-            <p id="status" role="status" class="sm:col-span-2 text-sm text-slate-400"></p>
+            <form id="prediction-form" class="space-y-8 p-5 sm:p-8">
+                <fieldset class="min-w-0 border-0 p-0">
+                    <legend class="mb-4 flex items-center gap-3 text-sm font-bold">
+                        <span class="section-number">01</span> Basics &amp; size
+                    </legend>
+                    <div class="grid gap-x-5 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
+                        <label>
+                            <span class="field-label">Posted by <span aria-hidden="true">*</span></span>
+                            <select name="POSTED_BY" required class="field-control">
+                                <option value="Owner">Owner</option><option value="Dealer">Dealer</option><option value="Builder">Builder</option>
+                            </select>
+                        </label>
+                        <label>
+                            <span class="field-label">Property type <span aria-hidden="true">*</span></span>
+                            <select name="BHK_OR_RK" required class="field-control"><option value="BHK">BHK</option><option value="RK">RK</option></select>
+                        </label>
+                        <label>
+                            <span class="field-label">BHK / RK count <span aria-hidden="true">*</span></span>
+                            <input name="BHK_NO." type="number" min="1" max="20" value="2" required class="field-control" inputmode="numeric">
+                        </label>
+                        <label>
+                            <span class="field-label">Built-up area (sq ft) <span aria-hidden="true">*</span></span>
+                            <input name="SQUARE_FT" type="number" min="1" max="1000000" step="any" value="1000" required class="field-control" inputmode="decimal">
+                            <span class="field-hint">Enter the total area in square feet.</span>
+                        </label>
+                    </div>
+                </fieldset>
 
-            <section id="result" hidden
-                     class="sm:col-span-2 rounded-xl border border-cyan-900 bg-slate-950 p-6">
-                <p class="text-sm text-slate-400">Estimated property price</p>
-                <p id="price-lakhs" class="mt-2 text-4xl font-bold text-cyan-400"></p>
-                <p id="price-rupees" class="mt-2 text-slate-300"></p>
-                <p class="mt-4 text-xs text-slate-500">
-                    Model estimate only; actual market prices may differ.
-                </p>
-            </section>
-        </form>
+                <fieldset class="min-w-0 border-0 border-t p-0 pt-7" style="border-color:var(--line)">
+                    <legend class="mb-4 flex items-center gap-3 pt-1 text-sm font-bold">
+                        <span class="section-number">02</span> Location
+                    </legend>
+                    <div class="grid gap-x-5 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+                        <label>
+                            <span class="field-label">Address / locality <span aria-hidden="true">*</span></span>
+                            <input name="ADDRESS" type="text" maxlength="300" value="Lanka, Varanasi" required class="field-control" autocomplete="street-address">
+                            <span class="field-hint">Locality, city or neighbourhood name.</span>
+                        </label>
+                        <label>
+                            <span class="field-label">Longitude field (dataset) <span aria-hidden="true">*</span></span>
+                            <input name="LONGITUDE" type="number" min="-180" max="180" step="any" value="25.2677" required class="field-control" inputmode="decimal">
+                        </label>
+                        <label>
+                            <span class="field-label">Latitude field (dataset) <span aria-hidden="true">*</span></span>
+                            <input name="LATITUDE" type="number" min="-180" max="180" step="any" value="82.9913" required class="field-control" inputmode="decimal">
+                        </label>
+                    </div>
+                    <p class="field-hint mt-3">Coordinate labels reflect the current dataset fields. Verify the dataset's coordinate mapping before relying on location-sensitive estimates.</p>
+                </fieldset>
+
+                <fieldset class="min-w-0 border-0 border-t p-0 pt-7" style="border-color:var(--line)">
+                    <legend class="mb-4 flex items-center gap-3 pt-1 text-sm font-bold">
+                        <span class="section-number">03</span> Construction &amp; ownership
+                    </legend>
+                    <div class="grid gap-x-5 gap-y-5 sm:grid-cols-2 lg:grid-cols-4">
+                        <label>
+                            <span class="field-label">Under construction?</span>
+                            <select name="UNDER_CONSTRUCTION" class="field-control"><option value="0">No</option><option value="1">Yes</option></select>
+                        </label>
+                        <label>
+                            <span class="field-label">RERA registered?</span>
+                            <select name="RERA" class="field-control"><option value="0">No</option><option value="1">Yes</option></select>
+                        </label>
+                        <label>
+                            <span class="field-label">Ready to move?</span>
+                            <select name="READY_TO_MOVE" class="field-control"><option value="1">Yes</option><option value="0">No</option></select>
+                        </label>
+                        <label>
+                            <span class="field-label">Resale property?</span>
+                            <select name="RESALE" class="field-control"><option value="1">Yes</option><option value="0">No</option></select>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <div class="border-t pt-6" style="border-color:var(--line)">
+                    <button id="submit-button" type="submit" class="primary-btn">
+                        <span id="button-label">Estimate property price</span>
+                        <svg id="button-arrow" width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                        <svg id="button-spinner" hidden class="animate-spin" width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-opacity=".25" stroke-width="3"/><path d="M21 12a9 9 0 0 0-9-9" stroke="currentColor" stroke-width="3" stroke-linecap="round"/></svg>
+                    </button>
+                    <p id="status" role="status" aria-live="polite" class="mt-3 min-h-5 text-center text-sm" style="color:var(--muted)"></p>
+                </div>
+
+                <section id="result" hidden aria-labelledby="result-title" class="result-card p-5 sm:p-7">
+                    <div class="flex flex-col gap-5 sm:flex-row sm:items-start sm:justify-between">
+                        <div>
+                            <p class="eyebrow text-[10px] font-extrabold uppercase">Your estimate is ready</p>
+                            <h3 id="result-title" class="mt-2 text-lg font-bold">Estimated listing price</h3>
+                            <p id="price-lakhs" class="result-value mt-3 font-bold" style="color:var(--green)"></p>
+                            <p id="price-rupees" class="mt-2 text-sm font-medium" style="color:#5c6d60"></p>
+                        </div>
+                        <span class="pill self-start"><span aria-hidden="true">✓</span> Estimate generated</span>
+                    </div>
+                    <div class="mt-6 grid gap-3 sm:grid-cols-2">
+                        <div class="mini-stat"><p class="text-[10px] font-bold uppercase tracking-wider" style="color:#7a857d">Area supplied</p><p id="result-area" class="mt-1 text-sm font-bold"></p></div>
+                        <div class="mini-stat"><p class="text-[10px] font-bold uppercase tracking-wider" style="color:#7a857d">Locality supplied</p><p id="result-location" class="mt-1 text-sm font-bold"></p></div>
+                    </div>
+                    <p class="mt-5 text-xs leading-5" style="color:#718076">This is a model-based listing estimate, not a certified valuation or guaranteed sale price. Actual market prices may differ.</p>
+                </section>
+            </form>
+        </section>
+
+        <footer class="flex flex-col gap-2 py-7 text-xs sm:flex-row sm:items-center sm:justify-between" style="color:#7c867e">
+            <p>© <span id="current-year"></span> EstateIQ · Property intelligence for learning and exploration.</p>
+            <p>Built with machine learning · India</p>
+        </footer>
     </main>
 
     <script>
+        "use strict";
+
         const form = document.getElementById("prediction-form");
-        const status = document.getElementById("status");
+        const statusMessage = document.getElementById("status");
         const result = document.getElementById("result");
+        const submitButton = document.getElementById("submit-button");
+        const buttonLabel = document.getElementById("button-label");
+        const buttonArrow = document.getElementById("button-arrow");
+        const buttonSpinner = document.getElementById("button-spinner");
+
+        document.getElementById("current-year").textContent = new Date().getFullYear();
 
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
+            if (!form.reportValidity()) return;
+
             result.hidden = true;
-            status.textContent = "Calculating estimate...";
+            setLoading(true);
+            setStatus("Calculating an estimate from the supplied property details.");
 
             const payload = Object.fromEntries(new FormData(form).entries());
-
             for (const key of [
-                "UNDER_CONSTRUCTION", "RERA", "BHK_NO.",
-                "SQUARE_FT", "READY_TO_MOVE", "RESALE",
-                "LONGITUDE", "LATITUDE"
+                "UNDER_CONSTRUCTION", "RERA", "BHK_NO.", "SQUARE_FT",
+                "READY_TO_MOVE", "RESALE", "LONGITUDE", "LATITUDE"
             ]) {
                 payload[key] = Number(payload[key]);
             }
@@ -161,31 +291,64 @@
                     body: JSON.stringify(payload)
                 });
 
-                const data = await response.json();
+                let data;
+                try {
+                    data = await response.json();
+                } catch {
+                    throw new Error("The server returned an unreadable response. Check that Django is running.");
+                }
 
                 if (!response.ok) {
-                    throw new Error(data.error || "Prediction request failed.");
+                    throw new Error(data.error || (response.status === 503
+                        ? "The prediction model is not available yet. Train or install the model artifact first."
+                        : "Prediction request failed. Please try again."));
+                }
+
+                const lakhs = Number(data.predicted_price_lakhs);
+                const rupees = Number(data.predicted_price_rupees);
+                if (!Number.isFinite(lakhs) || !Number.isFinite(rupees) || lakhs < 0 || rupees < 0) {
+                    throw new Error("The server returned an invalid estimate. Please check the server logs.");
                 }
 
                 document.getElementById("price-lakhs").textContent =
-                    "₹" + Number(data.predicted_price_lakhs).toLocaleString("en-IN") + " lakhs";
-
+                    "₹" + lakhs.toLocaleString("en-IN", { maximumFractionDigits: 2 }) + " lakh";
                 document.getElementById("price-rupees").textContent =
-                    "₹" + Number(data.predicted_price_rupees).toLocaleString("en-IN");
+                    rupees.toLocaleString("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
+                document.getElementById("result-area").textContent =
+                    Number(payload["SQUARE_FT"]).toLocaleString("en-IN") + " sq ft";
+                document.getElementById("result-location").textContent = payload.ADDRESS;
 
                 result.hidden = false;
-                status.textContent = "Prediction completed.";
+                setStatus("Estimate generated successfully.", "success");
+                result.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "nearest" });
             } catch (error) {
-                status.textContent = "Error: " + error.message;
+                setStatus(error instanceof Error ? error.message : "Something went wrong. Please try again.", "error");
+            } finally {
+                setLoading(false);
             }
         });
+
+        function setLoading(isLoading) {
+            submitButton.disabled = isLoading;
+            buttonLabel.textContent = isLoading ? "Calculating estimate…" : "Estimate property price";
+            buttonArrow.hidden = isLoading;
+            buttonSpinner.hidden = !isLoading;
+            submitButton.setAttribute("aria-busy", String(isLoading));
+        }
+
+        function setStatus(message, state = "neutral") {
+            statusMessage.textContent = message;
+            statusMessage.classList.toggle("status-error", state === "error");
+            statusMessage.classList.toggle("status-success", state === "success");
+            statusMessage.setAttribute("role", state === "error" ? "alert" : "status");
+        }
 
         function getCookie(name) {
             const prefix = name + "=";
             for (const item of document.cookie.split(";")) {
                 const cookie = item.trim();
                 if (cookie.startsWith(prefix)) {
-                    return decodeURIComponent(cookie.substring(prefix.length));
+                    return decodeURIComponent(cookie.slice(prefix.length));
                 }
             }
             return "";
