@@ -299,10 +299,9 @@
         const searchMapButton = document.getElementById("search-location");
         const locateButton = document.getElementById("use-my-location");
         const propertyMap = L.map("property-map").setView([25.2677, 82.9913], 13);
-        const propertyTiles = L.tileLayer("https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png", {
+        const propertyTiles = L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}", {
             maxZoom: 19,
-            subdomains: "abcd",
-            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions" target="_blank" rel="noopener noreferrer">CARTO</a>'
+            attribution: 'Tiles &copy; <a href="https://www.esri.com/" target="_blank" rel="noopener noreferrer">Esri</a> | Map data contributors'
         }).addTo(propertyMap);
 
         propertyTiles.on("tileerror", () => {
