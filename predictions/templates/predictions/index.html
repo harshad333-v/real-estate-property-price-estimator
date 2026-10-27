@@ -7,6 +7,8 @@
     <meta name="description" content="Estimate residential property listing prices with a machine-learning property intelligence tool.">
     <title>EstateIQ — Real Estate Price Estimator</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <style>
         :root {
             color-scheme: light;
@@ -76,6 +78,13 @@
         .status-error { color: #a2352c !important; }
         .status-success { color: var(--green) !important; }
         .mini-stat { border: 1px solid var(--line); background: rgba(255,255,255,.6); border-radius: 13px; padding: 12px 14px; }
+        .map-panel { overflow: hidden; border: 1px solid #dfe4dc; border-radius: 16px; background: #fbfcf9; }
+        #property-map { width: 100%; height: 340px; z-index: 1; }
+        .map-action { min-height: 44px; border: 1px solid #dfe4dc; border-radius: 11px; padding: 9px 13px; background: #fff; color: var(--green); font-size: 13px; font-weight: 700; cursor: pointer; }
+        .map-action:hover { background: #f0f6e9; }
+        .map-action:focus-visible { outline: 3px solid #a4bf6c; outline-offset: 2px; }
+        .leaflet-container { font: inherit; }
+        @media (max-width: 600px) { #property-map { height: 280px; } }
         [hidden] { display: none !important; }
         @media (max-width: 760px) {
             .site-shell { padding-inline: 17px; }
@@ -176,22 +185,36 @@
                     <legend class="mb-4 flex items-center gap-3 pt-1 text-sm font-bold">
                         <span class="section-number">02</span> Location
                     </legend>
-                    <div class="grid gap-x-5 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
-                        <label>
+                    <div class="mb-5 flex flex-col gap-3 sm:flex-row">
+                        <label class="min-w-0 flex-1">
+                            <span class="field-label">Search address or locality</span>
+                            <input id="location-search" type="search" maxlength="200" placeholder="e.g. Sector 62, Noida" class="field-control" autocomplete="street-address">
+                        </label>
+                        <div class="flex items-end gap-2">
+                            <button id="search-location" type="button" class="map-action">Search map</button>
+                            <button id="use-my-location" type="button" class="map-action">Use my location</button>
+                        </div>
+                    </div>
+                    <div class="map-panel">
+                        <div id="property-map" role="application" aria-label="Map to choose property location"></div>
+                    </div>
+                    <p id="map-status" role="status" aria-live="polite" class="field-hint mt-2">Click the map or move the pin to choose the property location. You can also search for an address.</p>
+                    <div class="mt-5 grid gap-x-5 gap-y-5 sm:grid-cols-2 lg:grid-cols-3">
+                        <label class="sm:col-span-2 lg:col-span-1">
                             <span class="field-label">Address / locality <span aria-hidden="true">*</span></span>
-                            <input name="ADDRESS" type="text" maxlength="300" value="Lanka, Varanasi" required class="field-control" autocomplete="street-address">
-                            <span class="field-hint">Locality, city or neighbourhood name.</span>
+                            <input id="property-address" name="ADDRESS" type="text" maxlength="300" value="Lanka, Varanasi" required class="field-control" autocomplete="street-address">
+                            <span class="field-hint">Editable; confirm the correct locality before estimating.</span>
                         </label>
                         <label>
-                            <span class="field-label">Longitude field (dataset) <span aria-hidden="true">*</span></span>
-                            <input name="LONGITUDE" type="number" min="-180" max="180" step="any" value="25.2677" required class="field-control" inputmode="decimal">
+                            <span class="field-label">Latitude <span aria-hidden="true">*</span></span>
+                            <input id="property-latitude" name="LONGITUDE" type="number" min="-90" max="90" step="any" value="25.2677" required class="field-control" inputmode="decimal">
                         </label>
                         <label>
-                            <span class="field-label">Latitude field (dataset) <span aria-hidden="true">*</span></span>
-                            <input name="LATITUDE" type="number" min="-180" max="180" step="any" value="82.9913" required class="field-control" inputmode="decimal">
+                            <span class="field-label">Longitude <span aria-hidden="true">*</span></span>
+                            <input id="property-longitude" name="LATITUDE" type="number" min="-180" max="180" step="any" value="82.9913" required class="field-control" inputmode="decimal">
                         </label>
                     </div>
-                    <p class="field-hint mt-3">Coordinate labels reflect the current dataset fields. Verify the dataset's coordinate mapping before relying on location-sensitive estimates.</p>
+                    <p class="field-hint mt-3">Map coordinates are translated to the existing dataset fields expected by the model. Browser location access requires your permission; map search needs an internet connection.</p>
                 </fieldset>
 
                 <fieldset class="min-w-0 border-0 border-t p-0 pt-7" style="border-color:var(--line)">
@@ -263,7 +286,142 @@
         const buttonArrow = document.getElementById("button-arrow");
         const buttonSpinner = document.getElementById("button-spinner");
 
+
         document.getElementById("current-year").textContent = new Date().getFullYear();
+
+        // Dataset preprocessing intentionally remaps LONGITUDE -> geographic latitude
+        // and LATITUDE -> geographic longitude, so keep the API field names unchanged.
+        const latitudeInput = document.getElementById("property-latitude");
+        const longitudeInput = document.getElementById("property-longitude");
+        const addressInput = document.getElementById("property-address");
+        const mapSearchInput = document.getElementById("location-search");
+        const mapStatus = document.getElementById("map-status");
+        const searchMapButton = document.getElementById("search-location");
+        const locateButton = document.getElementById("use-my-location");
+        const propertyMap = L.map("property-map").setView([25.2677, 82.9913], 13);
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 19,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> contributors'
+        }).addTo(propertyMap);
+        let propertyMarker = L.marker([25.2677, 82.9913], { draggable: true }).addTo(propertyMap);
+
+        function setMapStatus(message, isError = false) {
+            mapStatus.textContent = message;
+            mapStatus.classList.toggle("status-error", isError);
+        }
+
+        function setPropertyLocation(latitude, longitude, address = null, zoom = 15) {
+            const lat = Number(latitude);
+            const lon = Number(longitude);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon) ||
+                lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                setMapStatus("That location has invalid coordinates. Choose another point.", true);
+                return;
+            }
+            // Existing model preprocessing expects latitude in LONGITUDE and longitude in LATITUDE.
+            latitudeInput.value = lat.toFixed(6);
+            longitudeInput.value = lon.toFixed(6);
+            propertyMarker.setLatLng([lat, lon]);
+            propertyMap.setView([lat, lon], zoom);
+            if (address) addressInput.value = address.slice(0, 300);
+            setMapStatus("Location selected: " + lat.toFixed(5) + ", " + lon.toFixed(5));
+        }
+
+        propertyMarker.on("dragend", () => {
+            const point = propertyMarker.getLatLng();
+            setPropertyLocation(point.lat, point.lng);
+        });
+        propertyMap.on("click", (event) => {
+            setPropertyLocation(event.latlng.lat, event.latlng.lng);
+        });
+
+        async function searchPropertyLocation() {
+            const query = mapSearchInput.value.trim();
+            if (!query) {
+                setMapStatus("Enter an address or locality to search.", true);
+                mapSearchInput.focus();
+                return;
+            }
+            searchMapButton.disabled = true;
+            setMapStatus("Searching for the location…");
+            try {
+                const url = new URL("https://nominatim.openstreetmap.org/search");
+                url.search = new URLSearchParams({ q: query, format: "jsonv2", limit: "1", countrycodes: "in" }).toString();
+                const response = await fetch(url.toString(), { headers: { "Accept": "application/json" } });
+                if (!response.ok) throw new Error("Location search is temporarily unavailable.");
+                const results = await response.json();
+                if (!results.length) throw new Error("No matching location found. Try a more specific address.");
+                const place = results[0];
+                setPropertyLocation(place.lat, place.lon, place.display_name, 16);
+                mapSearchInput.value = place.display_name;
+            } catch (error) {
+                setMapStatus(error instanceof Error ? error.message : "Could not search for that location.", true);
+            } finally {
+                searchMapButton.disabled = false;
+            }
+        }
+
+        searchMapButton.addEventListener("click", searchPropertyLocation);
+        mapSearchInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                searchPropertyLocation();
+            }
+        });
+
+        locateButton.addEventListener("click", () => {
+            if (!("geolocation" in navigator)) {
+                setMapStatus("This browser does not support location access. Search for an address instead.", true);
+                return;
+            }
+            locateButton.disabled = true;
+            setMapStatus("Waiting for location permission…");
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const { latitude, longitude } = position.coords;
+                    setPropertyLocation(latitude, longitude, null, 16);
+                    locateButton.disabled = false;
+                    try {
+                        const url = new URL("https://nominatim.openstreetmap.org/reverse");
+                        url.search = new URLSearchParams({
+                            lat: String(latitude), lon: String(longitude), format: "jsonv2"
+                        }).toString();
+                        const response = await fetch(url.toString(), { headers: { "Accept": "application/json" } });
+                        if (response.ok) {
+                            const place = await response.json();
+                            if (place.display_name) {
+                                addressInput.value = place.display_name.slice(0, 300);
+                                setMapStatus("Current location selected. Check the address and pin before estimating.");
+                            }
+                        }
+                    } catch {
+                        setMapStatus("Coordinates selected. Enter the address manually if needed.");
+                    }
+                },
+                (error) => {
+                    const message = error.code === error.PERMISSION_DENIED
+                        ? "Location permission was denied. Search for an address or choose a point on the map."
+                        : "Could not read your location. Check device location settings or choose a point on the map.";
+                    setMapStatus(message, true);
+                    locateButton.disabled = false;
+                },
+                { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+            );
+        });
+
+        // Keep map and form values synchronized when coordinates are edited manually.
+        function syncMapFromInputs() {
+            const lat = Number(latitudeInput.value);
+            const lon = Number(longitudeInput.value);
+            if (latitudeInput.value.trim() && longitudeInput.value.trim() &&
+                Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180) {
+                propertyMarker.setLatLng([lat, lon]);
+                propertyMap.setView([lat, lon], Math.max(propertyMap.getZoom(), 13));
+            }
+        }
+        latitudeInput.addEventListener("change", syncMapFromInputs);
+        longitudeInput.addEventListener("change", syncMapFromInputs);
+
 
         form.addEventListener("submit", async (event) => {
             event.preventDefault();
