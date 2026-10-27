@@ -1,5 +1,6 @@
 import json
 import math
+import os
 import sys
 from functools import lru_cache
 from pathlib import Path
@@ -94,7 +95,10 @@ def health(request):
 
 @ensure_csrf_cookie
 def home(request):
-    return render(request, "predictions/index.html")
+    # Browser-facing MapTiler key is public by design; restrict it to your site origin in MapTiler.
+    return render(request, "predictions/index.html", {
+        "maptiler_api_key": os.environ.get("MAPTILER_API_KEY", "").strip(),
+    })
 
 
 @require_POST
